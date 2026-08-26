@@ -22,8 +22,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not save registration.' }, { status: 500 });
     }
 
-    // Send the registrant a confirmation email, and let you know a new
-    // signup came in — both are best-effort and never block registration.
     await sendWebinarConfirmation({ name: name || null, email });
     await notifyAdminOfWebinarSignup({ name: name || null, email, phone: phone || null });
 
