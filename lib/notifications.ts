@@ -95,3 +95,109 @@ export async function notifyAdminOfNewOrder(order: Order) {
     console.error('Error sending admin order notification:', err);
   }
 }
+
+// Sends a confirmation email to a webinar registrant. Requires
+// RESEND_API_KEY — if missing, this is a no-op (logs a warning, never
+// throws, so registration always succeeds even if email fails).
+export async function sendWebinarConfirmation(params: {
+  name: string | null;
+  email: string;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Pure Mist <onboarding@resend.dev>';
+
+  if (!apiKey) {
+    console.warn('Skipping webinar confirmation email: RESEND_API_KEY not set.');
+    return;
+  }
+
+  const greetingName = params.name ? params.name : 'there';
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color:#0d2b22;">You're Registered — Pure Mist Webinar</h2>
+      <p>Hi ${greetingName},</p>
+      <p>
+        Thank you for reserving your seat at the Pure Mist Perfume Webinar —
+        an intimate masterclass on fragrance layering, rare ingredients, and
+        the craft behind our collection.
+      </p>
+      <p>We'll email you the access details closer to the event date.</p>
+      <p style="margin-top:24px;">Warmly,<br/>The Pure Mist Team</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: params.email,
+        subject: 'Your Pure Mist Webinar Seat is Confirmed',
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Resend webinar confirmation failed:', errText);
+    }
+  } catch (err) {
+    console.error('Error sending webinar confirmation email:', err);
+  }
+}
+
+// Sends YOU a heads-up whenever someone registers for the webinar.
+// Requires RESEND_API_KEY and ADMIN_NOTIFICATION_EMAIL — no-op otherwise.
+export async function notifyAdminOfWebinarSignup(params: {
+  name: string | null;
+  email: string;
+  phone: string | null;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Pure Mist <onboarding@resend.dev>';
+
+  if (!apiKey || !adminEmail) {
+    console.warn(
+      'Skipping admin webinar notification: RESEND_API_KEY or ADMIN_NOTIFICATION_EMAIL not set.'
+    );
+    return;
+  }
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+      <h2 style="color:#0d2b22;">New Webinar Registration</h2>
+      <p><strong>Name:</strong> ${params.name || '—'}</p>
+      <p><strong>Email:</strong> ${params.email}</p>
+      <p><strong>Phone:</strong> ${params.phone || '—'}</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: adminEmail,
+        subject: `New Webinar Signup — ${params.name || params.email}`,
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Resend admin webinar notification failed:', errText);
+    }
+  } catch (err) {
+    console.error('Error sending admin webinar notification:', err);
+  }
+}

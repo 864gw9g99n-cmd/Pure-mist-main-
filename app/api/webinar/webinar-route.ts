@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { sendWebinarConfirmation, notifyAdminOfWebinarSignup } from '@/lib/notifications';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,20 +22,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not save registration.' }, { status: 500 });
     }
 
-    // --- Optional: send confirmation email via Resend ---
-    // await fetch('https://api.resend.com/emails', {
-    //   method: 'POST',
-    //   headers: {
-    //     Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     from: 'Pure Mist <webinar@puremist.example>',
-    //     to: email,
-    //     subject: 'Your Pure Mist Webinar Seat is Confirmed',
-    //     html: `<p>Hi ${name || ''}, you're registered for the Pure Mist masterclass.</p>`,
-    //   }),
-    // });
+    // Send the registrant a confirmation email, and let you know a new
+    // signup came in — both are best-effort and never block registration.
+    await sendWebinarConfirmation({ name: name || null, email });
+    await notifyAdminOfWebinarSignup({ name: name || null, email, phone: phone || null });
 
     return NextResponse.json({ success: true });
   } catch (err) {
