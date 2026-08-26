@@ -69,6 +69,7 @@ export default function CheckoutDrawer({
   }
 
   async function handlePay() {
+    if (!product) return;
     setError('');
     for (const [key, val] of Object.entries(form)) {
       if (!val.trim()) {
@@ -211,7 +212,7 @@ export default function CheckoutDrawer({
               </button>
               <span className="w-6 text-center text-white">{qty}</span>
               <button
-                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                onClick={() => setQty((q) => Math.min(product?.stock ?? 1, q + 1))}
                 className="w-8 h-8 rounded-full glass text-gold"
               >
                 +
