@@ -5,7 +5,9 @@ import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Product } from '@/lib/types';
 import ProductForm from '@/components/admin/ProductForm';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+
+const LOW_STOCK_THRESHOLD = 5;
 
 export default function AdminProductsPage() {
   const supabase = createClient();
@@ -34,6 +36,11 @@ export default function AdminProductsPage() {
     loadProducts();
   }
 
+  const lowStockProducts = products.filter(
+    (p) => p.is_active && p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD
+  );
+  const outOfStockProducts = products.filter((p) => p.is_active && p.stock === 0);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -48,6 +55,26 @@ export default function AdminProductsPage() {
           <Plus size={16} /> Add Product
         </button>
       </div>
+
+      {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
+        <div className="glass rounded-xl p-4 border border-amber-500/30 flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
+            <AlertTriangle size={16} />
+            Stock Alerts
+          </div>
+          {outOfStockProducts.length > 0 && (
+            <p className="text-xs text-red-400">
+              Out of stock: {outOfStockProducts.map((p) => p.name).join(', ')}
+            </p>
+          )}
+          {lowStockProducts.length > 0 && (
+            <p className="text-xs text-amber-300">
+              Running low (≤{LOW_STOCK_THRESHOLD}):{' '}
+              {lowStockProducts.map((p) => `${p.name} (${p.stock})`).join(', ')}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="glass rounded-xl p-4 sm:p-6 overflow-x-auto">
         <table className="w-full text-sm min-w-[600px]">
@@ -75,7 +102,19 @@ export default function AdminProductsPage() {
                 <td className="py-2 pr-4 text-gold">
                   ₹{p.discounted_price.toLocaleString('en-IN')}
                 </td>
-                <td className="py-2 pr-4 text-neutral-300">{p.stock}</td>
+                <td className="py-2 pr-4">
+                  <span
+                    className={
+                      p.stock === 0
+                        ? 'text-red-400 font-medium'
+                        : p.stock <= LOW_STOCK_THRESHOLD
+                        ? 'text-amber-400 font-medium'
+                        : 'text-neutral-300'
+                    }
+                  >
+                    {p.stock}
+                  </span>
+                </td>
                 <td className="py-2 pr-4">
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
