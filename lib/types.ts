@@ -13,7 +13,7 @@ export type Product = {
 
 export type PaymentPlan = 'full' | 'advance_30';
 
-export type OrderStatus = 'created' | 'paid' | 'failed' | 'cancelled';
+export type OrderStatus = 'created' | 'paid' | 'shipped' | 'delivered' | 'failed' | 'cancelled';
 
 export type Order = {
   id: string;
