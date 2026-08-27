@@ -1,10 +1,6 @@
-import OrdersTable from '@/components/admin/OrdersTable';
+import { redirect } from 'next/navigation';
 
-export default function AdminOrdersPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-serif text-2xl text-gold-gradient">Orders</h1>
-      <OrdersTable />
-    </div>
-  );
+// Consolidated into the single admin hub at /admin/dashboard (Orders tab).
+export default function AdminOrdersRedirect() {
+  redirect('/admin/dashboard');
 }
