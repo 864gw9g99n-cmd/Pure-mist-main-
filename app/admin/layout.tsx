@@ -1,12 +1,6 @@
-import AdminNav from '@/components/admin/AdminNav';
-
+// AdminHub (rendered from /admin/dashboard) manages its own full-page nav
+// and layout, so this wrapper stays minimal — it also covers /admin/login,
+// which needs no admin chrome at all.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen-safe bg-midnight">
-      <AdminNav />
-      <div className="pt-16 sm:pl-56 safe-bottom">
-        <div className="p-4 sm:p-8">{children}</div>
-      </div>
-    </div>
-  );
+  return <>{children}</>;
 }

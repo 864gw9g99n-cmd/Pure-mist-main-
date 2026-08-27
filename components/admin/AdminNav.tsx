@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Package, ShoppingBag, Mail, LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutDashboard, Package, ShoppingBag, Mail, LogOut } from 'lucide-react';
 
 const links = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,7 +16,6 @@ export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-  const [open, setOpen] = useState(false);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -27,24 +25,16 @@ export default function AdminNav() {
 
   return (
     <>
-      {/* Top bar (mobile) */}
-      <div className="fixed top-0 left-0 right-0 h-16 z-40 glass border-b border-gold/10 flex items-center justify-between px-4 safe-top sm:hidden">
+      {/* Top bar (mobile) — just a label, no toggle needed since nav lives at bottom */}
+      <div className="fixed top-0 left-0 right-0 h-14 z-40 glass border-b border-gold/10 flex items-center px-4 safe-top sm:hidden">
         <span className="font-serif text-lg text-gold-gradient">Pure Mist Admin</span>
-        <button onClick={() => setOpen(!open)} className="text-gold p-2">
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
       </div>
 
-      {/* Sidebar (desktop) / drawer (mobile) */}
-      <aside
-        className={`fixed top-0 left-0 h-full z-50 w-56 glass border-r border-gold/10 flex flex-col safe-top safe-bottom transition-transform sm:translate-x-0 ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="hidden sm:block px-5 py-5">
+      {/* Sidebar (desktop only) */}
+      <aside className="hidden sm:flex fixed top-0 left-0 h-full z-50 w-56 glass border-r border-gold/10 flex-col safe-top safe-bottom">
+        <div className="px-5 py-5">
           <span className="font-serif text-lg text-gold-gradient">Pure Mist Admin</span>
         </div>
-        <div className="sm:hidden h-16" />
 
         <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
           {links.map((l) => {
@@ -54,7 +44,6 @@ export default function AdminNav() {
               <Link
                 key={l.href}
                 href={l.href}
-                onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                   active ? 'bg-gold/10 text-gold' : 'text-neutral-300 hover:bg-white/5'
                 }`}
@@ -76,12 +65,34 @@ export default function AdminNav() {
         </div>
       </aside>
 
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 sm:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
+      {/* Bottom tab bar (mobile only) — always visible, one tap to any section */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-gold/10 safe-bottom sm:hidden">
+        <div className="flex items-stretch">
+          {links.map((l) => {
+            const Icon = l.icon;
+            const active = pathname === l.href;
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] transition-colors ${
+                  active ? 'text-gold' : 'text-neutral-400'
+                }`}
+              >
+                <Icon size={20} />
+                {l.label}
+              </Link>
+            );
+          })}
+          <button
+            onClick={handleLogout}
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] text-neutral-400"
+          >
+            <LogOut size={20} />
+            Sign Out
+          </button>
+        </div>
+      </nav>
     </>
   );
 }

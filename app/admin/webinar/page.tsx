@@ -1,10 +1,6 @@
-import WebinarTable from '@/components/admin/WebinarTable';
+import { redirect } from 'next/navigation';
 
-export default function AdminWebinarPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-serif text-2xl text-gold-gradient">Webinar Registrations</h1>
-      <WebinarTable />
-    </div>
-  );
+// Consolidated into the single admin hub at /admin/dashboard (Webinar tab).
+export default function AdminWebinarRedirect() {
+  redirect('/admin/dashboard');
 }
