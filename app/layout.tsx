@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Playfair_Display, Inter } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import SiteChrome from '@/components/SiteChrome';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -40,9 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-sans min-h-screen-safe bg-midnight w-full overflow-x-hidden">
-        <Header />
-        <main className="w-full overflow-x-hidden">{children}</main>
-        <Footer />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

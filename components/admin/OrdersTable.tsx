@@ -3,7 +3,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Order, OrderStatus } from '@/lib/types';
-import { ChevronDown, ChevronUp, Trash2, Search, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Search, Download, Pencil } from 'lucide-react';
+import OrderEditModal from './OrderEditModal';
 
 const paymentStatusColor: Record<string, string> = {
   fully_paid: 'bg-emerald text-white',
@@ -97,6 +98,7 @@ export default function OrdersTable() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   async function loadOrders() {
     const { data } = await supabase
@@ -126,14 +128,24 @@ export default function OrdersTable() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this order permanently? This cannot be undone.')) return;
-    await supabase.from('orders').delete().eq('id', id);
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) {
+      alert(
+        `Could not delete order: ${error.message}\n\nIf this keeps happening, the "Admins can delete orders" database permission may be missing — see setup notes.`
+      );
+      return;
+    }
     loadOrders();
   }
 
   async function handleStatusChange(id: string, newStatus: OrderStatus) {
     setUpdatingId(id);
-    await supabase.from('orders').update({ order_status: newStatus }).eq('id', id);
+    const { error } = await supabase.from('orders').update({ order_status: newStatus }).eq('id', id);
     setUpdatingId(null);
+    if (error) {
+      alert(`Could not update status: ${error.message}`);
+      return;
+    }
     loadOrders();
   }
 
@@ -267,6 +279,13 @@ export default function OrdersTable() {
                         {expanded === o.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
                       <button
+                        onClick={() => setEditingOrder(o)}
+                        className="text-blue-300 p-1"
+                        aria-label="Edit order"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
                         onClick={() => handleDelete(o.id)}
                         className="text-red-400 p-1"
                         aria-label="Delete order"
@@ -323,6 +342,17 @@ export default function OrdersTable() {
           </tbody>
         </table>
       </div>
+
+      {editingOrder && (
+        <OrderEditModal
+          order={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSaved={() => {
+            setEditingOrder(null);
+            loadOrders();
+          }}
+        />
+      )}
     </div>
   );
 }

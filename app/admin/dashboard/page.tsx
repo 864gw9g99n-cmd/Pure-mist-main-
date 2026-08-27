@@ -80,6 +80,27 @@ export default async function AdminDashboardPage() {
     <div className="flex flex-col gap-8">
       <h1 className="font-serif text-2xl text-gold-gradient">Dashboard</h1>
 
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/admin/products"
+          className="btn-gold rounded-full px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2"
+        >
+          <Package size={16} /> Add Product
+        </Link>
+        <Link
+          href="/admin/orders"
+          className="glass rounded-full px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2 text-white hover:bg-white/5"
+        >
+          <ShoppingBag size={16} /> View Orders
+        </Link>
+        <Link
+          href="/admin/webinar"
+          className="glass rounded-full px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2 text-white hover:bg-white/5"
+        >
+          <Mail size={16} /> Webinar List
+        </Link>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => {
           const Icon = s.icon;
