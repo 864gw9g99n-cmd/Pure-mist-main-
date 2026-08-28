@@ -282,3 +282,40 @@ export async function sendCustomerOrderConfirmation(order: Order) {
     console.error('Error sending customer order confirmation:', err);
   }
 }
+
+// --- WhatsApp order confirmation ---
+// Requires WHATSAPP_WEBHOOK_URL to be set to a webhook endpoint from a
+// WhatsApp Business API provider (e.g. Gupshup, Interakt, Meta Cloud API,
+// or a no-code automation tool like Make/Zapier configured to relay to
+// WhatsApp). This function is fully wired and will fire automatically the
+// moment that env var is set — no code changes needed on your end. Until
+// then, it's a silent no-op so checkout is never affected.
+export async function notifyCustomerViaWhatsApp(order: Order) {
+  const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn('Skipping WhatsApp notification: WHATSAPP_WEBHOOK_URL not set.');
+    return;
+  }
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: order.customer_phone,
+        template: 'order_confirmation',
+        params: {
+          customer_name: order.customer_name,
+          order_id: order.id,
+          amount_paid: order.amount_paid,
+          balance_due: order.balance_due,
+        },
+      }),
+    });
+    if (!res.ok) {
+      console.error('WhatsApp notification failed:', await res.text());
+    }
+  } catch (err) {
+    console.error('Error sending WhatsApp notification:', err);
+  }
+}

@@ -1,15 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/types';
 import ProductCard from './ProductCard';
 import CheckoutDrawer from './CheckoutDrawer';
 
 export default function ProductGrid({ products }: { products: Product[] }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Product | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   function handleBuyNow(product: Product) {
+    // Products with variants need a size/option chosen first — send to
+    // the detail page instead of opening checkout directly.
+    if (product.variants && product.variants.length > 0) {
+      router.push(`/product/${product.slug}`);
+      return;
+    }
     setSelected(product);
     setDrawerOpen(true);
   }

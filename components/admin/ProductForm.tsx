@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Product } from '@/lib/types';
+import { Product, ProductVariant } from '@/lib/types';
 import ImageUpload from './ImageUpload';
-import { X } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 
 export default function ProductForm({
   product,
@@ -26,6 +26,8 @@ export default function ProductForm({
     stock: product?.stock?.toString() || '10',
     is_active: product?.is_active ?? true,
   });
+  const [variants, setVariants] = useState<ProductVariant[]>(product?.variants || []);
+  const [useVariants, setUseVariants] = useState((product?.variants?.length || 0) > 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,11 +39,41 @@ export default function ProductForm({
       .replace(/(^-|-$)/g, '');
   }
 
+  function addVariant() {
+    setVariants([...variants, { label: '', price: 0, stock: 0 }]);
+  }
+
+  function updateVariant(index: number, field: keyof ProductVariant, value: string) {
+    const updated = [...variants];
+    if (field === 'label') {
+      updated[index] = { ...updated[index], label: value };
+    } else {
+      updated[index] = { ...updated[index], [field]: parseFloat(value) || 0 };
+    }
+    setVariants(updated);
+  }
+
+  function removeVariant(index: number) {
+    setVariants(variants.filter((_, i) => i !== index));
+  }
+
   async function handleSave() {
     setError('');
     if (!form.name || !form.original_price || !form.discounted_price) {
       setError('Name and prices are required.');
       return;
+    }
+    if (useVariants) {
+      if (variants.length === 0) {
+        setError('Add at least one variant, or turn off variants.');
+        return;
+      }
+      for (const v of variants) {
+        if (!v.label.trim() || v.price <= 0) {
+          setError('Every variant needs a label and a price.');
+          return;
+        }
+      }
     }
     setSaving(true);
 
@@ -53,6 +85,7 @@ export default function ProductForm({
       original_price: parseFloat(form.original_price),
       discounted_price: parseFloat(form.discounted_price),
       stock: parseInt(form.stock, 10) || 0,
+      variants: useVariants ? variants : [],
       is_active: form.is_active,
     };
 
@@ -130,7 +163,8 @@ export default function ProductForm({
                 type="number"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                className="w-full mt-1 rounded-lg bg-black/40 border border-gold/20 px-4 py-3 text-sm text-white focus:outline-none focus:border-gold"
+                disabled={useVariants}
+                className="w-full mt-1 rounded-lg bg-black/40 border border-gold/20 px-4 py-3 text-sm text-white focus:outline-none focus:border-gold disabled:opacity-40"
               />
             </div>
             <label className="flex items-center gap-2 text-sm text-neutral-300 pb-3">
@@ -142,6 +176,60 @@ export default function ProductForm({
               />
               Active (visible on store)
             </label>
+          </div>
+
+          <div className="border-t border-white/10 pt-4">
+            <label className="flex items-center gap-2 text-sm text-neutral-300 mb-3">
+              <input
+                type="checkbox"
+                checked={useVariants}
+                onChange={(e) => setUseVariants(e.target.checked)}
+                className="accent-gold w-4 h-4"
+              />
+              This product has size/option variants
+            </label>
+
+            {useVariants && (
+              <div className="flex flex-col gap-2">
+                {variants.map((v, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      placeholder="e.g. 50ml"
+                      value={v.label}
+                      onChange={(e) => updateVariant(i, 'label', e.target.value)}
+                      className="flex-1 rounded-lg bg-black/40 border border-gold/20 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-gold"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Price"
+                      value={v.price || ''}
+                      onChange={(e) => updateVariant(i, 'price', e.target.value)}
+                      className="w-24 rounded-lg bg-black/40 border border-gold/20 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-gold"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Stock"
+                      value={v.stock || ''}
+                      onChange={(e) => updateVariant(i, 'stock', e.target.value)}
+                      className="w-20 rounded-lg bg-black/40 border border-gold/20 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-gold"
+                    />
+                    <button
+                      onClick={() => removeVariant(i)}
+                      className="text-red-400 p-2"
+                      aria-label="Remove variant"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addVariant}
+                  className="glass rounded-lg py-2 text-sm text-gold inline-flex items-center justify-center gap-2 mt-1"
+                >
+                  <Plus size={14} /> Add Variant
+                </button>
+              </div>
+            )}
           </div>
 
           {error && <p className="text-red-400 text-xs">{error}</p>}

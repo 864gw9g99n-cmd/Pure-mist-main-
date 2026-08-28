@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notifyAdminOfNewOrder, sendCustomerOrderConfirmation } from '@/lib/notifications';
+import {
+  notifyAdminOfNewOrder,
+  sendCustomerOrderConfirmation,
+  notifyCustomerViaWhatsApp,
+} from '@/lib/notifications';
 import { decrementStockForOrder } from '@/lib/stock';
+import { incrementCouponUsage } from '@/lib/coupons';
 
 // Configure this URL in your Razorpay Dashboard → Settings → Webhooks.
 // Acts as a reliable server-to-server backup to the client-side `verify`
@@ -59,6 +64,7 @@ export async function POST(req: NextRequest) {
         // `order_status !== 'paid'` guard above prevents double-processing
         // if `verify` already handled it.
         await decrementStockForOrder(order.items);
+        await incrementCouponUsage(order.coupon_code);
 
         await notifyAdminOfNewOrder({
           ...order,
@@ -69,6 +75,14 @@ export async function POST(req: NextRequest) {
         });
 
         await sendCustomerOrderConfirmation({
+          ...order,
+          razorpay_payment_id: payment.id,
+          amount_paid: amountPaidNow,
+          payment_status: paymentStatus,
+          order_status: 'paid',
+        });
+
+        await notifyCustomerViaWhatsApp({
           ...order,
           razorpay_payment_id: payment.id,
           amount_paid: amountPaidNow,

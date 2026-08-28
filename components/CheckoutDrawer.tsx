@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import { X } from 'lucide-react';
-import { Product, PaymentPlan } from '@/lib/types';
+import { X, Tag } from 'lucide-react';
+import { Product, PaymentPlan, ProductVariant } from '@/lib/types';
 
 declare global {
   interface Window {
@@ -34,10 +34,12 @@ const emptyForm: ShippingForm = {
 
 export default function CheckoutDrawer({
   product,
+  variant = null,
   open,
   onClose,
 }: {
   product: Product | null;
+  variant?: ProductVariant | null;
   open: boolean;
   onClose: () => void;
 }) {
@@ -47,6 +49,15 @@ export default function CheckoutDrawer({
   const [form, setForm] = useState<ShippingForm>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot
+  const [formLoadedAt, setFormLoadedAt] = useState(0);
+
+  const [couponInput, setCouponInput] = useState('');
+  const [couponStatus, setCouponStatus] = useState<'idle' | 'checking' | 'applied' | 'error'>('idle');
+  const [couponError, setCouponError] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(
+    null
+  );
 
   useEffect(() => {
     if (open) {
@@ -54,18 +65,50 @@ export default function CheckoutDrawer({
       setPlan('full');
       setForm(emptyForm);
       setError('');
+      setWebsite('');
+      setFormLoadedAt(Date.now());
+      setCouponInput('');
+      setCouponStatus('idle');
+      setCouponError('');
+      setAppliedCoupon(null);
     }
-  }, [open, product]);
+  }, [open, product, variant]);
 
   if (!product) return null;
 
-  const cartTotal = product.discounted_price * qty;
+  const unitPrice = variant ? variant.price : product.discounted_price;
+  const availableStock = variant ? variant.stock : product.stock;
+  const itemLabel = variant ? `${product.name} - ${variant.label}` : product.name;
+
+  const rawCartTotal = unitPrice * qty;
+  const discount = appliedCoupon?.discountAmount || 0;
+  const cartTotal = Math.max(rawCartTotal - discount, 0);
   const advanceAmount = Math.round(cartTotal * 0.3);
   const balanceDue = cartTotal - advanceAmount;
   const amountToCharge = plan === 'full' ? cartTotal : advanceAmount;
 
   function update<K extends keyof ShippingForm>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleApplyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponStatus('checking');
+    setCouponError('');
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponInput, cartTotal: rawCartTotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid coupon.');
+      setAppliedCoupon({ code: data.code, discountAmount: data.discountAmount });
+      setCouponStatus('applied');
+    } catch (err: any) {
+      setCouponStatus('error');
+      setCouponError(err.message);
+    }
   }
 
   async function handlePay() {
@@ -80,7 +123,6 @@ export default function CheckoutDrawer({
     setLoading(true);
 
     try {
-      // 1. Create a pending order + Razorpay order on the server
       const createRes = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,13 +130,15 @@ export default function CheckoutDrawer({
           items: [
             {
               product_id: product.id,
-              name: product.name,
-              price: product.discounted_price,
+              name: itemLabel,
+              variant_label: variant?.label || null,
+              price: unitPrice,
               quantity: qty,
             },
           ],
-          cartTotal,
+          cartTotal: rawCartTotal,
           paymentPlan: plan,
+          couponCode: appliedCoupon?.code || undefined,
           customer: {
             name: form.name,
             email: form.email,
@@ -106,6 +150,8 @@ export default function CheckoutDrawer({
             state: form.state,
             pincode: form.pincode,
           },
+          website, // honeypot
+          formLoadedAt,
         }),
       });
 
@@ -114,7 +160,6 @@ export default function CheckoutDrawer({
 
       const { razorpayOrderId, amount, currency, keyId, orderId } = createData;
 
-      // 2. Open Razorpay Checkout
       const rzp = new window.Razorpay({
         key: keyId,
         amount,
@@ -122,8 +167,8 @@ export default function CheckoutDrawer({
         name: 'Pure Mist',
         description:
           plan === 'full'
-            ? `${product.name} × ${qty}`
-            : `${product.name} × ${qty} — 30% Advance (Balance ₹${balanceDue.toLocaleString('en-IN')} on delivery)`,
+            ? `${itemLabel} × ${qty}`
+            : `${itemLabel} × ${qty} — 30% Advance (Balance ₹${balanceDue.toLocaleString('en-IN')} on delivery)`,
         order_id: razorpayOrderId,
         prefill: {
           name: form.name,
@@ -132,7 +177,6 @@ export default function CheckoutDrawer({
         },
         theme: { color: '#c9a227' },
         handler: async function (response: any) {
-          // 3. Verify payment signature server-side
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -174,7 +218,6 @@ export default function CheckoutDrawer({
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      {/* Overlay */}
       <div
         className={`fixed inset-0 bg-black/70 z-[60] transition-opacity ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -182,7 +225,6 @@ export default function CheckoutDrawer({
         onClick={onClose}
       />
 
-      {/* Drawer */}
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-[420px] max-w-full z-[70] bg-midnight border-l border-gold/20 shadow-2xl transition-transform duration-300 overflow-y-auto safe-top safe-bottom ${
           open ? 'translate-x-0' : 'translate-x-full'
@@ -196,12 +238,21 @@ export default function CheckoutDrawer({
         </div>
 
         <div className="p-4 flex flex-col gap-5">
+          {/* Honeypot — hidden from real users, bots often fill every field */}
+          <input
+            type="text"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            className="absolute -left-[9999px] w-px h-px opacity-0"
+            aria-hidden="true"
+          />
+
           <div className="glass rounded-xl p-4 flex gap-3 items-center">
             <div className="flex-1">
-              <p className="text-white font-medium">{product.name}</p>
-              <p className="text-gold text-sm">
-                ₹{product.discounted_price.toLocaleString('en-IN')} each
-              </p>
+              <p className="text-white font-medium">{itemLabel}</p>
+              <p className="text-gold text-sm">₹{unitPrice.toLocaleString('en-IN')} each</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -212,7 +263,7 @@ export default function CheckoutDrawer({
               </button>
               <span className="w-6 text-center text-white">{qty}</span>
               <button
-                onClick={() => setQty((q) => Math.min(product?.stock ?? 1, q + 1))}
+                onClick={() => setQty((q) => Math.min(availableStock || 1, q + 1))}
                 className="w-8 h-8 rounded-full glass text-gold"
               >
                 +
@@ -220,7 +271,47 @@ export default function CheckoutDrawer({
             </div>
           </div>
 
-          {/* Payment plan selector */}
+          {/* Coupon */}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-neutral-400 mb-2">Coupon Code</p>
+            {appliedCoupon ? (
+              <div className="glass rounded-lg p-3 flex items-center justify-between">
+                <span className="text-gold text-sm flex items-center gap-2">
+                  <Tag size={14} /> {appliedCoupon.code} applied
+                </span>
+                <button
+                  onClick={() => {
+                    setAppliedCoupon(null);
+                    setCouponStatus('idle');
+                    setCouponInput('');
+                  }}
+                  className="text-neutral-400 text-xs hover:text-white"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  className="flex-1 rounded-lg bg-black/40 border border-gold/20 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-gold"
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={couponStatus === 'checking'}
+                  className="glass rounded-lg px-4 py-2.5 text-sm text-gold whitespace-nowrap disabled:opacity-50"
+                >
+                  {couponStatus === 'checking' ? '...' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {couponStatus === 'error' && (
+              <p className="text-red-400 text-xs mt-1.5">{couponError}</p>
+            )}
+          </div>
+
           <div>
             <p className="text-xs uppercase tracking-widest text-neutral-400 mb-2">
               Payment Option
@@ -249,7 +340,6 @@ export default function CheckoutDrawer({
             </div>
           </div>
 
-          {/* Shipping form */}
           <div className="flex flex-col gap-3">
             <p className="text-xs uppercase tracking-widest text-neutral-400">
               Shipping Details
@@ -303,9 +393,18 @@ export default function CheckoutDrawer({
             />
           </div>
 
-          {/* Summary */}
           <div className="glass rounded-xl p-4 text-sm space-y-2">
             <div className="flex justify-between text-neutral-300">
+              <span>Subtotal</span>
+              <span>₹{rawCartTotal.toLocaleString('en-IN')}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-gold">
+                <span>Discount</span>
+                <span>-₹{discount.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-white font-medium">
               <span>Cart Total</span>
               <span>₹{cartTotal.toLocaleString('en-IN')}</span>
             </div>

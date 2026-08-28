@@ -11,9 +11,20 @@ export default function ProductCard({
   product: Product;
   onBuyNow: (product: Product) => void;
 }) {
-  const discountPct = Math.round(
-    ((product.original_price - product.discounted_price) / product.original_price) * 100
-  );
+  const hasVariants = product.variants && product.variants.length > 0;
+  const displayPrice = hasVariants
+    ? Math.min(...product.variants.map((v) => v.price))
+    : product.discounted_price;
+  const totalStock = hasVariants
+    ? product.variants.reduce((sum, v) => sum + v.stock, 0)
+    : product.stock;
+
+  const discountPct =
+    !hasVariants && product.original_price > 0
+      ? Math.round(
+          ((product.original_price - product.discounted_price) / product.original_price) * 100
+        )
+      : 0;
 
   return (
     <div className="group glass rounded-2xl overflow-hidden flex flex-col animate-fadeIn">
@@ -50,10 +61,11 @@ export default function ProductCard({
           </p>
         )}
         <div className="flex items-baseline gap-2 mt-auto">
+          {hasVariants && <span className="text-neutral-500 text-xs">From</span>}
           <span className="text-gold font-semibold text-lg">
-            ₹{product.discounted_price.toLocaleString('en-IN')}
+            ₹{displayPrice.toLocaleString('en-IN')}
           </span>
-          {product.original_price > product.discounted_price && (
+          {!hasVariants && product.original_price > product.discounted_price && (
             <span className="text-neutral-500 text-sm line-through">
               ₹{product.original_price.toLocaleString('en-IN')}
             </span>
@@ -61,10 +73,10 @@ export default function ProductCard({
         </div>
         <button
           onClick={() => onBuyNow(product)}
-          disabled={product.stock <= 0}
+          disabled={totalStock <= 0}
           className="btn-gold w-full mt-2 rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {product.stock > 0 ? 'Buy Now' : 'Out of Stock'}
+          {totalStock > 0 ? (hasVariants ? 'Choose Options' : 'Buy Now') : 'Out of Stock'}
         </button>
       </div>
     </div>

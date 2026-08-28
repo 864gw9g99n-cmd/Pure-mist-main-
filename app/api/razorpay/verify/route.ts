@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notifyAdminOfNewOrder, sendCustomerOrderConfirmation } from '@/lib/notifications';
+import {
+  notifyAdminOfNewOrder,
+  sendCustomerOrderConfirmation,
+  notifyCustomerViaWhatsApp,
+} from '@/lib/notifications';
 import { decrementStockForOrder } from '@/lib/stock';
+import { incrementCouponUsage } from '@/lib/coupons';
 
 export async function POST(req: NextRequest) {
   try {
@@ -93,6 +98,9 @@ export async function POST(req: NextRequest) {
     // --- Reduce stock now that payment is confirmed ---
     await decrementStockForOrder(order.items);
 
+    // --- Record coupon usage, if one was applied ---
+    await incrementCouponUsage(order.coupon_code);
+
     // --- Admin notification: email YOU the moment an order comes in ---
     await notifyAdminOfNewOrder({
       ...order,
@@ -111,17 +119,14 @@ export async function POST(req: NextRequest) {
       order_status: 'paid',
     });
 
-    // --- Placeholder: WhatsApp confirmation (requires a WhatsApp
-    // Business API provider — Gupshup, Interakt, etc.) ---
-    // await fetch(process.env.WHATSAPP_WEBHOOK_URL!, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     to: order.customer_phone,
-    //     template: 'order_confirmation',
-    //     params: [order.customer_name, order.id, String(order.cart_total)],
-    //   }),
-    // });
+    // --- WhatsApp confirmation (no-ops until WHATSAPP_WEBHOOK_URL is set) ---
+    await notifyCustomerViaWhatsApp({
+      ...order,
+      razorpay_payment_id,
+      amount_paid: amountPaidNow,
+      payment_status: paymentStatus,
+      order_status: 'paid',
+    });
 
     return NextResponse.json({ success: true, orderId });
   } catch (err) {

@@ -8,29 +8,72 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       items,
-      cartTotal,
+      cartTotal: rawCartTotal,
       paymentPlan,
       customer,
       shipping,
+      couponCode,
+      formLoadedAt,
+      website, // honeypot — real users never fill this
     }: {
       items: OrderItem[];
       cartTotal: number;
       paymentPlan: PaymentPlan;
       customer: { name: string; email: string; phone: string };
       shipping: { address: string; city: string; state: string; pincode: string };
+      couponCode?: string;
+      formLoadedAt?: number;
+      website?: string;
     } = body;
 
-    if (!items?.length || !cartTotal || !customer?.email || !shipping?.address) {
+    // --- Basic spam protection ---
+    if (website) {
+      // Honeypot field was filled — silently pretend success to not tip off bots.
+      return NextResponse.json({ error: 'Could not process checkout.' }, { status: 400 });
+    }
+    if (formLoadedAt && Date.now() - formLoadedAt < 2000) {
+      return NextResponse.json({ error: 'Please try again.' }, { status: 400 });
+    }
+
+    if (!items?.length || !rawCartTotal || !customer?.email || !shipping?.address) {
       return NextResponse.json({ error: 'Missing required checkout details.' }, { status: 400 });
     }
     if (paymentPlan !== 'full' && paymentPlan !== 'advance_30') {
       return NextResponse.json({ error: 'Invalid payment plan.' }, { status: 400 });
     }
 
+    const supabase = createServiceClient();
+
+    // --- Validate + apply coupon server-side (never trust client math) ---
+    let cartTotal = rawCartTotal;
+    let discountAmount = 0;
+    let appliedCouponCode: string | null = null;
+
+    if (couponCode) {
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode.trim().toUpperCase())
+        .eq('active', true)
+        .single();
+
+      if (coupon) {
+        const notExpired = !coupon.expires_at || new Date(coupon.expires_at) >= new Date();
+        const underLimit = coupon.max_uses === null || coupon.used_count < coupon.max_uses;
+        if (notExpired && underLimit) {
+          discountAmount =
+            coupon.discount_type === 'percent'
+              ? Math.round((rawCartTotal * coupon.discount_value) / 100)
+              : Math.min(coupon.discount_value, rawCartTotal);
+          cartTotal = Math.max(rawCartTotal - discountAmount, 0);
+          appliedCouponCode = coupon.code;
+        }
+      }
+    }
+
     const { amountToCharge, balanceDue } = calculateChargeAmount(cartTotal, paymentPlan);
 
     // 1. Create a pending order row in Supabase
-    const supabase = createServiceClient();
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -45,6 +88,8 @@ export async function POST(req: NextRequest) {
         cart_total: cartTotal,
         amount_paid: 0,
         balance_due: balanceDue,
+        coupon_code: appliedCouponCode,
+        discount_amount: discountAmount,
         payment_plan: paymentPlan,
         payment_status: 'pending',
         order_status: 'created',
@@ -82,6 +127,8 @@ export async function POST(req: NextRequest) {
       amount: rzpOrder.amount,
       currency: rzpOrder.currency,
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      discountAmount,
+      cartTotal,
     });
   } catch (err) {
     console.error(err);

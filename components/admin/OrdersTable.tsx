@@ -3,8 +3,21 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Order, OrderStatus } from '@/lib/types';
-import { ChevronDown, ChevronUp, Trash2, Search, Download, Pencil } from 'lucide-react';
+import { downloadInvoice } from '@/lib/invoice';
+import {
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Search,
+  Download,
+  Pencil,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import OrderEditModal from './OrderEditModal';
+
+const PAGE_SIZE = 20;
 
 const paymentStatusColor: Record<string, string> = {
   fully_paid: 'bg-emerald text-white',
@@ -54,6 +67,8 @@ function downloadCSV(orders: Order[]) {
     'Cart Total',
     'Amount Paid',
     'Balance Due',
+    'Coupon',
+    'Discount',
     'Payment Plan',
     'Payment Status',
     'Order Status',
@@ -72,6 +87,8 @@ function downloadCSV(orders: Order[]) {
     o.cart_total,
     o.amount_paid,
     o.balance_due,
+    o.coupon_code || '',
+    o.discount_amount,
     o.payment_plan,
     o.payment_status,
     o.order_status,
@@ -99,6 +116,7 @@ export default function OrdersTable() {
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [page, setPage] = useState(1);
 
   async function loadOrders() {
     const { data } = await supabase
@@ -125,6 +143,10 @@ export default function OrdersTable() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this order permanently? This cannot be undone.')) return;
@@ -162,6 +184,9 @@ export default function OrdersTable() {
       return matchesStatus && matchesSearch;
     });
   }, [orders, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const pagedOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) {
     return <p className="text-neutral-500 text-sm">Loading orders…</p>;
@@ -205,11 +230,13 @@ export default function OrdersTable() {
       </div>
 
       <p className="text-xs text-neutral-500 px-1">
-        Showing {filteredOrders.length} of {orders.length} order{orders.length !== 1 ? 's' : ''}
+        Showing {pagedOrders.length ? (page - 1) * PAGE_SIZE + 1 : 0}–
+        {Math.min(page * PAGE_SIZE, filteredOrders.length)} of {filteredOrders.length} order
+        {filteredOrders.length !== 1 ? 's' : ''}
       </p>
 
       <div className="glass rounded-xl p-4 sm:p-6 overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
+        <table className="w-full text-sm min-w-[880px]">
           <thead>
             <tr className="text-left text-neutral-400 border-b border-white/10">
               <th className="py-2 pr-4">Customer</th>
@@ -222,7 +249,7 @@ export default function OrdersTable() {
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((o) => (
+            {pagedOrders.map((o) => (
               <Fragment key={o.id}>
                 <tr className="border-b border-white/5">
                   <td className="py-2 pr-4">
@@ -279,6 +306,14 @@ export default function OrdersTable() {
                         {expanded === o.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
                       <button
+                        onClick={() => downloadInvoice(o)}
+                        className="text-emerald p-1"
+                        aria-label="Download invoice"
+                        title="Download GST invoice"
+                      >
+                        <FileText size={16} />
+                      </button>
+                      <button
                         onClick={() => setEditingOrder(o)}
                         className="text-blue-300 p-1"
                         aria-label="Edit order"
@@ -315,6 +350,11 @@ export default function OrdersTable() {
                               {(item.price * item.quantity).toLocaleString('en-IN')}
                             </p>
                           ))}
+                          {o.coupon_code && (
+                            <p className="text-gold mt-2">
+                              Coupon {o.coupon_code}: -₹{o.discount_amount.toLocaleString('en-IN')}
+                            </p>
+                          )}
                           {o.balance_due > 0 && (
                             <p className="text-gold mt-2">
                               Balance Due on Delivery: ₹{o.balance_due.toLocaleString('en-IN')}
@@ -342,6 +382,30 @@ export default function OrdersTable() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="glass rounded-full p-2 text-gold disabled:opacity-30"
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-xs text-neutral-400">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="glass rounded-full p-2 text-gold disabled:opacity-30"
+            aria-label="Next page"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
 
       {editingOrder && (
         <OrderEditModal

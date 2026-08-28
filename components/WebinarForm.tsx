@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, CheckCircle2 } from 'lucide-react';
 
 export default function WebinarForm() {
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [error, setError] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot
+  const [formLoadedAt, setFormLoadedAt] = useState(0);
+
+  useEffect(() => {
+    setFormLoadedAt(Date.now());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,7 +23,7 @@ export default function WebinarForm() {
       const res = await fetch('/api/webinar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, website, formLoadedAt }),
       });
 
       if (!res.ok) {
@@ -53,6 +59,18 @@ export default function WebinarForm() {
       <h3 className="font-serif text-xl sm:text-2xl text-gold-gradient text-center mb-2">
         Reserve Your Seat
       </h3>
+
+      {/* Honeypot — hidden from real users, bots often fill every field */}
+      <input
+        type="text"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        className="absolute -left-[9999px] w-px h-px opacity-0"
+        aria-hidden="true"
+      />
+
       <input
         type="text"
         required

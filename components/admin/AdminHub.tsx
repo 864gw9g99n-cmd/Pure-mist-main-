@@ -3,24 +3,28 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Package, ShoppingBag, Mail, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Mail, Tag, RotateCcw, LogOut } from 'lucide-react';
 import OverviewPanel from './OverviewPanel';
 import ProductsPanel from './ProductsPanel';
 import OrdersTable from './OrdersTable';
 import WebinarTable from './WebinarTable';
+import CouponsPanel from './CouponsPanel';
+import ReturnsPanel from './ReturnsPanel';
 
-type Tab = 'dashboard' | 'products' | 'orders' | 'webinar';
+type Tab = 'dashboard' | 'products' | 'orders' | 'webinar' | 'coupons' | 'returns';
 
 const tabs: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
   { key: 'webinar', label: 'Webinar', icon: Mail },
+  { key: 'coupons', label: 'Coupons', icon: Tag },
+  { key: 'returns', label: 'Returns', icon: RotateCcw },
 ];
 
-// Single-page admin: everything (overview, products, orders, webinar
-// registrations) lives on one URL and switches via tab state, so there's
-// never a "feature that only exists on a different page" gap.
+// Single-page admin: everything lives on one URL and switches via tab
+// state, so there's never a "feature that only exists on a different
+// page" gap.
 export default function AdminHub() {
   const [tab, setTab] = useState<Tab>('dashboard');
   const router = useRouter();
@@ -74,7 +78,7 @@ export default function AdminHub() {
         </div>
       </aside>
 
-      {/* Bottom tab bar (mobile) */}
+      {/* Bottom tab bar (mobile) — icon-only to fit 6 sections + sign out */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-gold/10 safe-bottom sm:hidden">
         <div className="flex items-stretch">
           {tabs.map((t) => {
@@ -84,27 +88,27 @@ export default function AdminHub() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] transition-colors ${
+                title={t.label}
+                className={`flex-1 flex items-center justify-center py-3 transition-colors ${
                   active ? 'text-gold' : 'text-neutral-400'
                 }`}
               >
-                <Icon size={20} />
-                {t.label}
+                <Icon size={19} />
               </button>
             );
           })}
           <button
             onClick={handleLogout}
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] text-neutral-400"
+            title="Sign Out"
+            className="flex-1 flex items-center justify-center py-3 text-neutral-400"
           >
-            <LogOut size={20} />
-            Sign Out
+            <LogOut size={19} />
           </button>
         </div>
       </nav>
 
       {/* Content */}
-      <div className="pt-14 sm:pt-0 pb-20 sm:pb-0 sm:pl-56 safe-bottom">
+      <div className="pt-14 sm:pt-0 pb-16 sm:pb-0 sm:pl-56 safe-bottom">
         <div className="p-4 sm:p-8">
           {tab === 'dashboard' && <OverviewPanel onNavigate={(t) => setTab(t)} />}
           {tab === 'products' && <ProductsPanel />}
@@ -120,6 +124,8 @@ export default function AdminHub() {
               <WebinarTable />
             </div>
           )}
+          {tab === 'coupons' && <CouponsPanel />}
+          {tab === 'returns' && <ReturnsPanel />}
         </div>
       </div>
     </div>

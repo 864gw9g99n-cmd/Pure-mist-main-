@@ -57,6 +57,18 @@ export default async function ThankYouPage({
         <Link href="/" className="btn-gold inline-block rounded-full px-6 py-3 text-sm font-medium">
           Continue Shopping
         </Link>
+
+        {order && (
+          <p className="mt-4 text-xs text-neutral-500">
+            Need to return or exchange something?{' '}
+            <Link
+              href={`/return-request?order_id=${order.id}`}
+              className="text-gold hover:underline"
+            >
+              Submit a request
+            </Link>
+          </p>
+        )}
       </div>
     </section>
   );

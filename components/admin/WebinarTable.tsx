@@ -3,7 +3,9 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { WebinarRegistration } from '@/lib/types';
-import { Trash2, Search, Download, Mail, Phone } from 'lucide-react';
+import { Trash2, Search, Download, Mail, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 20;
 
 function toCSVValue(value: string) {
   const str = value ?? '';
@@ -38,6 +40,7 @@ export default function WebinarTable() {
   const [registrations, setRegistrations] = useState<WebinarRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   async function loadRegistrations() {
     const { data } = await supabase
@@ -65,6 +68,10 @@ export default function WebinarTable() {
     };
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
   async function handleDelete(id: string) {
     if (!confirm('Delete this registration permanently?')) return;
     await supabase.from('webinar_registrations').delete().eq('id', id);
@@ -81,6 +88,9 @@ export default function WebinarTable() {
         (r.phone || '').toLowerCase().includes(q)
     );
   }, [registrations, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) {
     return <p className="text-neutral-500 text-sm">Loading registrations…</p>;
@@ -112,8 +122,9 @@ export default function WebinarTable() {
       </div>
 
       <p className="text-xs text-neutral-500 px-1">
-        Showing {filtered.length} of {registrations.length} registration
-        {registrations.length !== 1 ? 's' : ''}
+        Showing {paged.length ? (page - 1) * PAGE_SIZE + 1 : 0}–
+        {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} registration
+        {filtered.length !== 1 ? 's' : ''}
       </p>
 
       <div className="glass rounded-xl p-4 sm:p-6 overflow-x-auto">
@@ -127,7 +138,7 @@ export default function WebinarTable() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
+            {paged.map((r) => (
               <Fragment key={r.id}>
                 <tr className="border-b border-white/5">
                   <td className="py-2 pr-4 text-white">{r.name || '—'}</td>
@@ -168,6 +179,30 @@ export default function WebinarTable() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="glass rounded-full p-2 text-gold disabled:opacity-30"
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-xs text-neutral-400">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="glass rounded-full p-2 text-gold disabled:opacity-30"
+            aria-label="Next page"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
