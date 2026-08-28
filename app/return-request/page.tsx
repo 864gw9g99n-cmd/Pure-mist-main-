@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 
-export default function ReturnRequestPage() {
+function ReturnRequestForm() {
   const searchParams = useSearchParams();
   const [form, setForm] = useState({
     orderId: searchParams.get('order_id') || '',
@@ -120,5 +120,19 @@ export default function ReturnRequestPage() {
         </form>
       </div>
     </section>
+  );
+}
+
+export default function ReturnRequestPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen-safe flex items-center justify-center px-4">
+          <p className="text-neutral-500 text-sm">Loading…</p>
+        </div>
+      }
+    >
+      <ReturnRequestForm />
+    </Suspense>
   );
 }
