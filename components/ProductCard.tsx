@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Product } from '@/lib/types';
 
 export default function ProductCard({
@@ -16,7 +17,7 @@ export default function ProductCard({
 
   return (
     <div className="group glass rounded-2xl overflow-hidden flex flex-col animate-fadeIn">
-      <div className="relative w-full aspect-square bg-black/30">
+      <Link href={`/product/${product.slug}`} className="relative w-full aspect-square bg-black/30 block">
         {product.image_url ? (
           <Image
             src={product.image_url}
@@ -35,10 +36,19 @@ export default function ProductCard({
             -{discountPct}%
           </span>
         )}
-      </div>
+      </Link>
 
       <div className="p-4 flex flex-col gap-2 flex-1">
-        <h3 className="font-serif text-lg text-white leading-snug">{product.name}</h3>
+        <Link href={`/product/${product.slug}`}>
+          <h3 className="font-serif text-lg text-white leading-snug hover:text-gold transition-colors">
+            {product.name}
+          </h3>
+        </Link>
+        {product.description && (
+          <p className="text-neutral-400 text-xs leading-relaxed line-clamp-2">
+            {product.description}
+          </p>
+        )}
         <div className="flex items-baseline gap-2 mt-auto">
           <span className="text-gold font-semibold text-lg">
             ₹{product.discounted_price.toLocaleString('en-IN')}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notifyAdminOfNewOrder } from '@/lib/notifications';
+import { notifyAdminOfNewOrder, sendCustomerOrderConfirmation } from '@/lib/notifications';
+import { decrementStockForOrder } from '@/lib/stock';
 
 // Configure this URL in your Razorpay Dashboard → Settings → Webhooks.
 // Acts as a reliable server-to-server backup to the client-side `verify`
@@ -54,9 +55,11 @@ export async function POST(req: NextRequest) {
 
         // This branch only runs if `verify` never completed (e.g. the
         // customer closed their browser mid-payment), so it's safe to
-        // send the admin notification here too — the `order_status !==
-        // 'paid'` guard above prevents a duplicate email if `verify`
-        // already handled it.
+        // send notifications and decrement stock here too — the
+        // `order_status !== 'paid'` guard above prevents double-processing
+        // if `verify` already handled it.
+        await decrementStockForOrder(order.items);
+
         await notifyAdminOfNewOrder({
           ...order,
           razorpay_payment_id: payment.id,
@@ -65,7 +68,13 @@ export async function POST(req: NextRequest) {
           order_status: 'paid',
         });
 
-        // Shiprocket placeholder — see verify/route.ts
+        await sendCustomerOrderConfirmation({
+          ...order,
+          razorpay_payment_id: payment.id,
+          amount_paid: amountPaidNow,
+          payment_status: paymentStatus,
+          order_status: 'paid',
+        });
       }
     }
   }

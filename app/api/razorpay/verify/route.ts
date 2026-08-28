@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createServiceClient } from '@/lib/supabase/server';
-import { notifyAdminOfNewOrder } from '@/lib/notifications';
+import { notifyAdminOfNewOrder, sendCustomerOrderConfirmation } from '@/lib/notifications';
+import { decrementStockForOrder } from '@/lib/stock';
 
 export async function POST(req: NextRequest) {
   try {
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
     // const shipmentData = await shipment.json();
     // await supabase.from('orders').update({ shiprocket_shipment_id: shipmentData.shipment_id }).eq('id', orderId);
 
+    // --- Reduce stock now that payment is confirmed ---
+    await decrementStockForOrder(order.items);
+
     // --- Admin notification: email YOU the moment an order comes in ---
     await notifyAdminOfNewOrder({
       ...order,
@@ -98,18 +102,17 @@ export async function POST(req: NextRequest) {
       order_status: 'paid',
     });
 
-    // --- Placeholder: customer-facing confirmation (Resend email / WhatsApp) ---
-    // await fetch('https://api.resend.com/emails', {
-    //   method: 'POST',
-    //   headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     from: 'Pure Mist <orders@puremist.example>',
-    //     to: order.customer_email,
-    //     subject: `Order Confirmed — Pure Mist #${order.id}`,
-    //     html: `<p>Thank you ${order.customer_name}! Your order is confirmed.</p>`,
-    //   }),
-    // });
-    //
+    // --- Customer-facing confirmation email ---
+    await sendCustomerOrderConfirmation({
+      ...order,
+      razorpay_payment_id,
+      amount_paid: amountPaidNow,
+      payment_status: paymentStatus,
+      order_status: 'paid',
+    });
+
+    // --- Placeholder: WhatsApp confirmation (requires a WhatsApp
+    // Business API provider — Gupshup, Interakt, etc.) ---
     // await fetch(process.env.WHATSAPP_WEBHOOK_URL!, {
     //   method: 'POST',
     //   headers: { 'Content-Type': 'application/json' },

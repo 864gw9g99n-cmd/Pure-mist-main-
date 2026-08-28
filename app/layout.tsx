@@ -16,7 +16,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Pure Mist | Luxury Fragrance House',
+  title: {
+    default: 'Pure Mist | Luxury Fragrance House',
+    template: '%s | Pure Mist',
+  },
   description:
     'Pure Mist — an exclusive collection of luxury perfumes. Join our masterclass webinar and discover scent as an art form.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -24,6 +27,12 @@ export const metadata: Metadata = {
     title: 'Pure Mist | Luxury Fragrance House',
     description: 'An exclusive collection of luxury perfumes.',
     type: 'website',
+    siteName: 'Pure Mist',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pure Mist | Luxury Fragrance House',
+    description: 'An exclusive collection of luxury perfumes.',
   },
 };
 
