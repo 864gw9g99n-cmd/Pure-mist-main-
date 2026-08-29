@@ -4,13 +4,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Menu, X, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
-import CartDrawer from './CartDrawer';
-import CheckoutFlow from './CheckoutFlow';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const { itemCount } = useCart();
 
   const links = [
@@ -36,33 +32,25 @@ export default function Header() {
               {l.label}
             </a>
           ))}
-          <button
-            onClick={() => setCartOpen(true)}
-            className="relative text-gold p-2"
-            aria-label="Open cart"
-          >
+          <Link href="/cart" className="relative text-gold p-2" aria-label="View cart">
             <ShoppingBag size={20} />
             {itemCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-gold text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                 {itemCount > 9 ? '9+' : itemCount}
               </span>
             )}
-          </button>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2 md:hidden">
-          <button
-            onClick={() => setCartOpen(true)}
-            className="relative text-gold p-2"
-            aria-label="Open cart"
-          >
+          <Link href="/cart" className="relative text-gold p-2" aria-label="View cart">
             <ShoppingBag size={20} />
             {itemCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-gold text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                 {itemCount > 9 ? '9+' : itemCount}
               </span>
             )}
-          </button>
+          </Link>
           <button
             className="text-gold p-2"
             onClick={() => setOpen(!open)}
@@ -94,16 +82,6 @@ export default function Header() {
           </a>
         </div>
       )}
-
-      <CartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        onCheckout={() => {
-          setCartOpen(false);
-          setCheckoutOpen(true);
-        }}
-      />
-      <CheckoutFlow open={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
     </header>
   );
 }
