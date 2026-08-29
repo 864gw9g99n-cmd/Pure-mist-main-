@@ -74,7 +74,11 @@ export default function WebinarTable() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this registration permanently?')) return;
-    await supabase.from('webinar_registrations').delete().eq('id', id);
+    const { error } = await supabase.from('webinar_registrations').delete().eq('id', id);
+    if (error) {
+      alert(`Could not delete: ${error.message}`);
+      return;
+    }
     loadRegistrations();
   }
 

@@ -1,27 +1,7 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/types';
 import ProductCard from './ProductCard';
-import CheckoutDrawer from './CheckoutDrawer';
 
 export default function ProductGrid({ products }: { products: Product[] }) {
-  const router = useRouter();
-  const [selected, setSelected] = useState<Product | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  function handleBuyNow(product: Product) {
-    // Products with variants need a size/option chosen first — send to
-    // the detail page instead of opening checkout directly.
-    if (product.variants && product.variants.length > 0) {
-      router.push(`/product/${product.slug}`);
-      return;
-    }
-    setSelected(product);
-    setDrawerOpen(true);
-  }
-
   return (
     <section id="collection" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
       <div className="text-center mb-12">
@@ -36,16 +16,10 @@ export default function ProductGrid({ products }: { products: Product[] }) {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {products.map((p) => (
-            <ProductCard key={p.id} product={p} onBuyNow={handleBuyNow} />
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
       )}
-
-      <CheckoutDrawer
-        product={selected}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
     </section>
   );
 }

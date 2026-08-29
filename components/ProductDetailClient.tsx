@@ -3,14 +3,16 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Product, ProductVariant } from '@/lib/types';
-import CheckoutDrawer from '@/components/CheckoutDrawer';
+import { useCart } from '@/lib/cart-context';
+import { Check } from 'lucide-react';
 
 export default function ProductDetailClient({ product }: { product: Product }) {
+  const { addItem } = useCart();
   const hasVariants = product.variants && product.variants.length > 0;
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     hasVariants ? product.variants[0] : null
   );
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   const unitPrice = selectedVariant ? selectedVariant.price : product.discounted_price;
   const stock = selectedVariant ? selectedVariant.stock : product.stock;
@@ -21,6 +23,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           ((product.original_price - product.discounted_price) / product.original_price) * 100
         )
       : 0;
+
+  function handleAddToCart() {
+    addItem(product, selectedVariant, 1);
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
+  }
 
   return (
     <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-20">
@@ -100,11 +108,19 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </p>
 
           <button
-            onClick={() => setDrawerOpen(true)}
+            onClick={handleAddToCart}
             disabled={stock <= 0}
-            className="btn-gold w-full sm:w-auto rounded-full px-8 py-3.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-gold w-full sm:w-auto rounded-full px-8 py-3.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
           >
-            {stock > 0 ? 'Buy Now' : 'Out of Stock'}
+            {justAdded ? (
+              <>
+                <Check size={16} /> Added to Cart
+              </>
+            ) : stock > 0 ? (
+              'Add to Cart'
+            ) : (
+              'Out of Stock'
+            )}
           </button>
 
           <div className="glass rounded-xl p-4 text-xs text-neutral-400 leading-relaxed">
@@ -113,13 +129,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </div>
         </div>
       </div>
-
-      <CheckoutDrawer
-        product={product}
-        variant={selectedVariant}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
     </section>
   );
 }

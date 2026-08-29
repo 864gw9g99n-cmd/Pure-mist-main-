@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Playfair_Display, Inter } from 'next/font/google';
 import './globals.css';
 import SiteChrome from '@/components/SiteChrome';
+import { CartProvider } from '@/lib/cart-context';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -48,7 +49,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-sans min-h-screen-safe bg-midnight w-full overflow-x-hidden">
-        <SiteChrome>{children}</SiteChrome>
+        <CartProvider>
+          <SiteChrome>{children}</SiteChrome>
+        </CartProvider>
       </body>
     </html>
   );

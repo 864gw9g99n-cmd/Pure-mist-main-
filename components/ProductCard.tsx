@@ -1,16 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/lib/types';
+import { useCart } from '@/lib/cart-context';
+import { Check } from 'lucide-react';
 
-export default function ProductCard({
-  product,
-  onBuyNow,
-}: {
-  product: Product;
-  onBuyNow: (product: Product) => void;
-}) {
+export default function ProductCard({ product }: { product: Product }) {
+  const { addItem } = useCart();
+  const [justAdded, setJustAdded] = useState(false);
+
   const hasVariants = product.variants && product.variants.length > 0;
   const displayPrice = hasVariants
     ? Math.min(...product.variants.map((v) => v.price))
@@ -25,6 +25,13 @@ export default function ProductCard({
           ((product.original_price - product.discounted_price) / product.original_price) * 100
         )
       : 0;
+
+  function handleAddToCart() {
+    if (hasVariants) return; // variant products require picking an option on the detail page
+    addItem(product, null, 1);
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
+  }
 
   return (
     <div className="group glass rounded-2xl overflow-hidden flex flex-col animate-fadeIn">
@@ -71,13 +78,31 @@ export default function ProductCard({
             </span>
           )}
         </div>
-        <button
-          onClick={() => onBuyNow(product)}
-          disabled={totalStock <= 0}
-          className="btn-gold w-full mt-2 rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {totalStock > 0 ? (hasVariants ? 'Choose Options' : 'Buy Now') : 'Out of Stock'}
-        </button>
+
+        {hasVariants ? (
+          <Link
+            href={`/product/${product.slug}`}
+            className="btn-gold w-full mt-2 rounded-full py-2.5 text-sm font-medium text-center"
+          >
+            {totalStock > 0 ? 'Choose Options' : 'Out of Stock'}
+          </Link>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            disabled={totalStock <= 0}
+            className="btn-gold w-full mt-2 rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+          >
+            {justAdded ? (
+              <>
+                <Check size={16} /> Added
+              </>
+            ) : totalStock > 0 ? (
+              'Add to Cart'
+            ) : (
+              'Out of Stock'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

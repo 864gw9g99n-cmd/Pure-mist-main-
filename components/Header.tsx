@@ -3,9 +3,15 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Menu, X, ShoppingBag } from 'lucide-react';
+import { useCart } from '@/lib/cart-context';
+import CartDrawer from './CartDrawer';
+import CheckoutFlow from './CheckoutFlow';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const { itemCount } = useCart();
 
   const links = [
     { href: '/#collection', label: 'Collection' },
@@ -30,21 +36,41 @@ export default function Header() {
               {l.label}
             </a>
           ))}
-          <a
-            href="/#collection"
-            className="btn-gold px-5 py-2 rounded-full text-sm font-medium inline-flex items-center gap-2"
+          <button
+            onClick={() => setCartOpen(true)}
+            className="relative text-gold p-2"
+            aria-label="Open cart"
           >
-            <ShoppingBag size={16} /> Shop Now
-          </a>
+            <ShoppingBag size={20} />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-gold text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {itemCount > 9 ? '9+' : itemCount}
+              </span>
+            )}
+          </button>
         </nav>
 
-        <button
-          className="md:hidden text-gold p-2"
-          onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <button
+            onClick={() => setCartOpen(true)}
+            className="relative text-gold p-2"
+            aria-label="Open cart"
+          >
+            <ShoppingBag size={20} />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-gold text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {itemCount > 9 ? '9+' : itemCount}
+              </span>
+            )}
+          </button>
+          <button
+            className="text-gold p-2"
+            onClick={() => setOpen(!open)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -68,6 +94,16 @@ export default function Header() {
           </a>
         </div>
       )}
+
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        onCheckout={() => {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }}
+      />
+      <CheckoutFlow open={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
     </header>
   );
 }
