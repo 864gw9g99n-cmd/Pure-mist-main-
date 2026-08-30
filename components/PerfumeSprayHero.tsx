@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 
 type Droplet = {
   id: number;
@@ -13,7 +19,7 @@ type Droplet = {
 };
 
 function makeDroplets(): Droplet[] {
-  return Array.from({ length: 18 }, (_, i) => ({
+  return Array.from({ length: 10 }, (_, i) => ({
     id: i + Math.random(),
     left: Math.random() < 0.5 ? Math.random() * 25 : 70 + Math.random() * 25,
     delay: Math.random() * 0.5,
@@ -22,21 +28,47 @@ function makeDroplets(): Droplet[] {
   }));
 }
 
-// A persistent, replayable hero visual — not a one-time splash. Idle state
-// shows the bottle only; spraying reveals mist + droplets, then resets back
-// to idle so it can always be viewed/replayed. Desktop users trigger it by
-// clicking; touch devices (no hover capability) auto-trigger it once on
-// first load, since there's no hover/click affordance to discover there.
+// A persistent, replayable hero visual — not a video, not a one-time splash.
+// Real CSS 3D: the card sits in a perspective space and tilts on rotateX/
+// rotateY in response to the pointer (spring-smoothed), so it genuinely
+// responds in 3D rather than just playing a flat animation. Note: this is
+// CSS/transform-based pseudo-3D built from two real photos — not a WebGL
+// 3D model render, since there's no 3D asset or engine involved.
+//
+// Idle state shows the clean bottle photo; a click (desktop) or automatic
+// first-load trigger (touch devices) crossfades to the spray photo plus a
+// few extra floating droplets for added motion, then crossfades back.
 export default function PerfumeSprayHero() {
   const [phase, setPhase] = useState<'idle' | 'spraying'>('idle');
   const [droplets, setDroplets] = useState<Droplet[]>([]);
   const autoFired = useRef(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Pointer-tracked 3D tilt
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 120, damping: 15 });
+  const springY = useSpring(mouseY, { stiffness: 120, damping: 15 });
+  const rotateX = useTransform(springY, [-0.5, 0.5], [10, -10]);
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-12, 12]);
+
+  function handlePointerMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+  }
+
+  function handlePointerLeave() {
+    mouseX.set(0);
+    mouseY.set(0);
+  }
 
   function spray() {
     if (phase === 'spraying') return;
     setDroplets(makeDroplets());
     setPhase('spraying');
-    setTimeout(() => setPhase('idle'), 2400);
+    setTimeout(() => setPhase('idle'), 2600);
   }
 
   useEffect(() => {
@@ -50,50 +82,64 @@ export default function PerfumeSprayHero() {
   }, []);
 
   return (
-    <div
-      onClick={spray}
-      className="relative w-full max-w-sm mx-auto aspect-square rounded-2xl overflow-hidden glass cursor-pointer select-none"
-      role="button"
-      aria-label="Spray Pure Mist"
-    >
+    <div style={{ perspective: 1200 }} className="w-full max-w-sm mx-auto">
       <motion.div
-        className="absolute inset-0"
-        animate={{ scale: phase === 'spraying' ? 1.03 : 1 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        ref={wrapperRef}
+        onClick={spray}
+        onMouseMove={handlePointerMove}
+        onMouseLeave={handlePointerLeave}
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        animate={{ y: phase === 'idle' ? [0, -8, 0] : 0 }}
+        transition={{ y: { duration: 4, repeat: Infinity, ease: 'easeInOut' } }}
+        className="relative w-full aspect-square rounded-2xl overflow-hidden glass cursor-pointer select-none shadow-2xl"
+        role="button"
+        aria-label="Spray Pure Mist"
       >
-        <Image
-          src="/perfume-spray.webp"
-          alt="Pure Mist perfume bottle"
-          fill
-          priority
-          sizes="(max-width: 640px) 90vw, 400px"
-          className="object-cover"
-        />
-      </motion.div>
-
-      <AnimatePresence>
-        {phase === 'spraying' && (
-          <>
-            {/* mist burst */}
+        <AnimatePresence mode="wait">
+          {phase === 'idle' ? (
             <motion.div
-              className="absolute z-10"
-              style={{ top: '20%', left: '55%' }}
-              initial={{ opacity: 0, scale: 0.3 }}
-              animate={{ opacity: [0, 0.7, 0.3], scale: [0.3, 1.5, 1.9] }}
+              key="clean"
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1, ease: 'easeOut' }}
+              transition={{ duration: 0.5 }}
             >
-              <div
-                className="w-32 h-32 rounded-full"
-                style={{
-                  background:
-                    'radial-gradient(circle, rgba(232,199,102,0.5) 0%, rgba(232,199,102,0.15) 45%, transparent 70%)',
-                }}
+              <Image
+                src="/perfume-bottle-clean.webp"
+                alt="Pure Mist perfume bottle"
+                fill
+                priority
+                sizes="(max-width: 640px) 90vw, 400px"
+                className="object-cover"
+                style={{ transform: 'translateZ(20px)' }}
               />
             </motion.div>
+          ) : (
+            <motion.div
+              key="sprayed"
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 1.02 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Image
+                src="/perfume-spray.webp"
+                alt="Pure Mist perfume spraying"
+                fill
+                sizes="(max-width: 640px) 90vw, 400px"
+                className="object-cover"
+                style={{ transform: 'translateZ(20px)' }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* falling droplets */}
-            {droplets.map((d) => (
+        {/* extra floating droplets for motion, layered above the photo */}
+        <AnimatePresence>
+          {phase === 'spraying' &&
+            droplets.map((d) => (
               <motion.div
                 key={d.id}
                 className="absolute rounded-full z-10"
@@ -102,6 +148,7 @@ export default function PerfumeSprayHero() {
                   left: `${d.left}%`,
                   width: d.size,
                   height: d.size,
+                  transform: 'translateZ(40px)',
                   background:
                     'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(232,199,102,0.5) 60%, transparent 80%)',
                   boxShadow: '0 0 6px rgba(232,199,102,0.5)',
@@ -112,18 +159,16 @@ export default function PerfumeSprayHero() {
                 transition={{ duration: d.duration, delay: d.delay, ease: 'easeIn' }}
               />
             ))}
-          </>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
 
-      {/* desktop-only hint, hidden once sprayed at least once this render */}
-      <div className="hidden sm:flex absolute bottom-3 left-0 right-0 justify-center pointer-events-none">
-        <span className="text-[10px] uppercase tracking-widest text-neutral-300/80 bg-black/40 px-3 py-1 rounded-full">
-          Click to Spray
-        </span>
-      </div>
+        <div className="hidden sm:flex absolute bottom-3 left-0 right-0 justify-center pointer-events-none">
+          <span className="text-[10px] uppercase tracking-widest text-neutral-300/80 bg-black/40 px-3 py-1 rounded-full">
+            Click to Spray
+          </span>
+        </div>
+      </motion.div>
     </div>
   );
 }
