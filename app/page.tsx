@@ -1,6 +1,5 @@
 import { createPublicClient } from '@/lib/supabase/server';
 import Hero from '@/components/Hero';
-import IntroSpray from '@/components/IntroSpray';
 import ProductGrid from '@/components/ProductGrid';
 import { Product } from '@/lib/types';
 
@@ -26,7 +25,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <IntroSpray />
       <Hero />
 
       <ProductGrid products={products} />
