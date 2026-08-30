@@ -49,7 +49,7 @@ export default function TermsOfService() {
         <p>These Terms are governed by the laws of India.</p>
 
         <h2 className="font-serif text-xl text-white mt-8 mb-3">7. Contact</h2>
-        <p>For questions about these Terms, contact us at support@puremist.example.</p>
+        <p>For questions about these Terms, contact us at supportpuremist@gmail.com.</p>
       </div>
     </section>
   );

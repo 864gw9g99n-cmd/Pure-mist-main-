@@ -3,6 +3,7 @@ import { Playfair_Display, Inter } from 'next/font/google';
 import './globals.css';
 import SiteChrome from '@/components/SiteChrome';
 import { CartProvider } from '@/lib/cart-context';
+import { CustomerAuthProvider } from '@/lib/auth-context';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     template: '%s | Pure Mist',
   },
   description:
-    'Pure Mist — an exclusive collection of luxury perfumes. Join our masterclass webinar and discover scent as an art form.',
+    'Pure Mist — an exclusive collection of luxury perfumes. Discover scent as an art form.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   openGraph: {
     title: 'Pure Mist | Luxury Fragrance House',
@@ -49,9 +50,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-sans min-h-screen-safe bg-midnight w-full overflow-x-hidden">
-        <CartProvider>
-          <SiteChrome>{children}</SiteChrome>
-        </CartProvider>
+        <CustomerAuthProvider>
+          <CartProvider>
+            <SiteChrome>{children}</SiteChrome>
+          </CartProvider>
+        </CustomerAuthProvider>
       </body>
     </html>
   );

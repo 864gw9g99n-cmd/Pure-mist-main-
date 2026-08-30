@@ -2,18 +2,22 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Menu, X, ShoppingBag } from 'lucide-react';
+import { Menu, X, ShoppingBag, User, LogOut } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const { user, signInWithGoogle, signOut } = useAuth();
 
   const links = [
     { href: '/#collection', label: 'Collection' },
-    { href: '/#webinar', label: 'Webinar' },
     { href: '/#about', label: 'Our Story' },
   ];
+
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 safe-top glass border-b border-gold/10">
@@ -32,6 +36,39 @@ export default function Header() {
               {l.label}
             </a>
           ))}
+
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 text-sm text-neutral-200 hover:text-gold"
+              >
+                <User size={16} className="text-gold" />
+                {firstName}
+              </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 glass rounded-lg py-2 w-40">
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:text-gold flex items-center gap-2"
+                  >
+                    <LogOut size={14} /> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => signInWithGoogle('/')}
+              className="text-sm tracking-wide text-neutral-200 hover:text-gold transition-colors"
+            >
+              Sign In
+            </button>
+          )}
+
           <Link href="/cart" className="relative text-gold p-2" aria-label="View cart">
             <ShoppingBag size={20} />
             {itemCount > 0 && (
@@ -73,6 +110,34 @@ export default function Header() {
               {l.label}
             </a>
           ))}
+
+          {user ? (
+            <>
+              <span className="text-neutral-400 text-sm flex items-center gap-2">
+                <User size={14} className="text-gold" /> {firstName}
+              </span>
+              <button
+                onClick={() => {
+                  signOut();
+                  setOpen(false);
+                }}
+                className="text-neutral-400 text-sm flex items-center gap-2 text-left"
+              >
+                <LogOut size={14} /> Sign Out
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                signInWithGoogle('/');
+                setOpen(false);
+              }}
+              className="text-neutral-200 text-sm text-left"
+            >
+              Sign In
+            </button>
+          )}
+
           <a
             href="/#collection"
             onClick={() => setOpen(false)}

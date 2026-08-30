@@ -1,6 +1,6 @@
 import { createPublicClient } from '@/lib/supabase/server';
 import Hero from '@/components/Hero';
-import WebinarForm from '@/components/WebinarForm';
+import IntroSpray from '@/components/IntroSpray';
 import ProductGrid from '@/components/ProductGrid';
 import { Product } from '@/lib/types';
 
@@ -26,11 +26,8 @@ export default async function HomePage() {
 
   return (
     <>
+      <IntroSpray />
       <Hero />
-
-      <section id="webinar" className="max-w-7xl mx-auto px-4 sm:px-6 -mt-20 relative z-10 pb-16">
-        <WebinarForm />
-      </section>
 
       <ProductGrid products={products} />
 

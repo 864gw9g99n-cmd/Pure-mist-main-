@@ -13,7 +13,7 @@ export default function RefundPolicy() {
         <p>
           Orders may be cancelled free of charge before they are shipped. Once an order has
           been dispatched, it cannot be cancelled, and standard return terms below will
-          apply. To request a cancellation, contact support@puremist.example with your Order
+          apply. To request a cancellation, contact supportpuremist@gmail.com with your Order
           ID as soon as possible.
         </p>
 
@@ -46,7 +46,7 @@ export default function RefundPolicy() {
 
         <h2 className="font-serif text-xl text-white mt-8 mb-3">6. Contact</h2>
         <p>
-          To initiate a return or refund, email support@puremist.example with your Order ID
+          To initiate a return or refund, email supportpuremist@gmail.com with your Order ID
           and details of the issue.
         </p>
       </div>

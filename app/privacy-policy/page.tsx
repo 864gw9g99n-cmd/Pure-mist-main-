@@ -46,13 +46,13 @@ export default function PrivacyPolicy() {
         <h2 className="font-serif text-xl text-white mt-8 mb-3">5. Your Rights</h2>
         <p>
           You may request access to, correction of, or deletion of your personal data at any
-          time by contacting us at support@puremist.example.
+          time by contacting us at supportpuremist@gmail.com.
         </p>
 
         <h2 className="font-serif text-xl text-white mt-8 mb-3">6. Contact Us</h2>
         <p>
           For any questions regarding this Privacy Policy, please contact us at
-          support@puremist.example.
+          supportpuremist@gmail.com.
         </p>
       </div>
     </section>

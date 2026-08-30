@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
-import { Tag } from 'lucide-react';
+import { Tag, LogIn } from 'lucide-react';
 import { PaymentPlan } from '@/lib/types';
 import { useCart } from '@/lib/cart-context';
+import { useAuth } from '@/lib/auth-context';
 
 declare global {
   interface Window {
@@ -37,6 +38,7 @@ const emptyForm: ShippingForm = {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart, hydrated } = useCart();
+  const { user, loading: authLoading, signInWithGoogle } = useAuth();
 
   const [plan, setPlan] = useState<PaymentPlan>('full');
   const [form, setForm] = useState<ShippingForm>(emptyForm);
@@ -60,6 +62,17 @@ export default function CheckoutPage() {
       router.replace('/cart');
     }
   }, [hydrated, items.length, router]);
+
+  // Prefill name/email from the signed-in Google profile
+  useEffect(() => {
+    if (user) {
+      setForm((f) => ({
+        ...f,
+        name: f.name || user.user_metadata?.full_name || '',
+        email: f.email || user.email || '',
+      }));
+    }
+  }, [user]);
 
   const discount = appliedCoupon?.discountAmount || 0;
   const cartTotal = Math.max(subtotal - discount, 0);
@@ -192,6 +205,38 @@ export default function CheckoutPage() {
     return (
       <section className="min-h-screen-safe px-4 sm:px-6 pt-24 pb-16 max-w-2xl mx-auto">
         <p className="text-neutral-500 text-sm text-center py-16">Loading…</p>
+      </section>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <section className="min-h-screen-safe px-4 sm:px-6 pt-24 pb-16 max-w-2xl mx-auto">
+        <p className="text-neutral-500 text-sm text-center py-16">Loading…</p>
+      </section>
+    );
+  }
+
+  if (!user) {
+    return (
+      <section className="min-h-screen-safe px-4 sm:px-6 pt-24 pb-16 max-w-md mx-auto">
+        <div className="glass rounded-2xl p-8 sm:p-10 text-center">
+          <LogIn className="mx-auto text-gold mb-4" size={40} />
+          <h1 className="font-serif text-2xl text-gold-gradient mb-3">Sign In to Continue</h1>
+          <p className="text-neutral-400 text-sm mb-6">
+            For order tracking and a smoother checkout, please sign in with Google before
+            completing your purchase.
+          </p>
+          <button
+            onClick={() => signInWithGoogle('/checkout')}
+            className="btn-gold w-full rounded-full py-3.5 font-medium text-sm inline-flex items-center justify-center gap-2"
+          >
+            Sign in with Google
+          </button>
+          <Link href="/cart" className="block mt-4 text-xs text-neutral-400 hover:text-gold">
+            Back to Cart
+          </Link>
+        </div>
       </section>
     );
   }

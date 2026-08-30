@@ -13,8 +13,8 @@ export default function Hero() {
           Pure Mist
         </h1>
         <p className="text-neutral-300 max-w-xl mx-auto mb-10 text-sm sm:text-base leading-relaxed">
-          Join our exclusive Pure Mist Perfume Webinar — an intimate masterclass on
-          fragrance layering, rare ingredients, and the craft behind our collection.
+          An exclusive collection of luxury perfumes, composed with rare absolutes and
+          precious oils. Discover fragrance as an art form.
         </p>
       </div>
     </section>
