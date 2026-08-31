@@ -24,7 +24,13 @@ export const metadata: Metadata = {
   },
   description:
     'Pure Mist — an exclusive collection of luxury perfumes. Discover scent as an art form.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  verification: {
+    google: '0JJKvoI1_e-DbAQbRs7BPwzx1qIfoQVoUUm1_duz5aU',
+  },
+  metadataBase: new
+  URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  // ... rest of your code
+
   openGraph: {
     title: 'Pure Mist | Luxury Fragrance House',
     description: 'An exclusive collection of luxury perfumes.',
