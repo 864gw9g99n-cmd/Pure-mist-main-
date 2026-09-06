@@ -3,21 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LayoutDashboard, Package, ShoppingBag, Mail, Tag, RotateCcw, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Tag, RotateCcw, LogOut } from 'lucide-react';
 import OverviewPanel from './OverviewPanel';
 import ProductsPanel from './ProductsPanel';
 import OrdersTable from './OrdersTable';
-import WebinarTable from './WebinarTable';
 import CouponsPanel from './CouponsPanel';
 import ReturnsPanel from './ReturnsPanel';
 
-type Tab = 'dashboard' | 'products' | 'orders' | 'webinar' | 'coupons' | 'returns';
+type Tab = 'dashboard' | 'products' | 'orders' | 'coupons' | 'returns';
 
 const tabs: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
-  { key: 'webinar', label: 'Webinar', icon: Mail },
   { key: 'coupons', label: 'Coupons', icon: Tag },
   { key: 'returns', label: 'Returns', icon: RotateCcw },
 ];
@@ -116,12 +114,6 @@ export default function AdminHub() {
             <div className="flex flex-col gap-6">
               <h1 className="font-serif text-2xl text-gold-gradient">Orders</h1>
               <OrdersTable />
-            </div>
-          )}
-          {tab === 'webinar' && (
-            <div className="flex flex-col gap-6">
-              <h1 className="font-serif text-2xl text-gold-gradient">Webinar Registrations</h1>
-              <WebinarTable />
             </div>
           )}
           {tab === 'coupons' && <CouponsPanel />}

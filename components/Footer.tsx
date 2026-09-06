@@ -28,7 +28,7 @@ export default function Footer() {
             <li>supportpuremist@gmail.com</li>
           </ul>
           <a
-            href="https://instagram.com/puremist"
+            href="https://www.instagram.com/puremist_in?igsi=MTFtZzRjYWR1b3Budg=="
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center w-9 h-9 rounded-full glass text-gold hover:bg-gold/10 transition-colors"

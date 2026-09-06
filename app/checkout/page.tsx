@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
-import { Tag, LogIn } from 'lucide-react';
+import { Tag, LogIn, Instagram } from 'lucide-react';
 import { PaymentPlan } from '@/lib/types';
 import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
@@ -312,6 +312,14 @@ export default function CheckoutPage() {
             </div>
           )}
           {couponStatus === 'error' && <p className="text-red-400 text-xs mt-1.5">{couponError}</p>}
+          <a
+            href="https://www.instagram.com/puremist_in?igsi=MTFtZzRjYWR1b3Budg=="
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-gold"
+          >
+            <Instagram size={13} /> Coupons on Instagram
+          </a>
         </div>
 
         <div>

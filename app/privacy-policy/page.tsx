@@ -10,7 +10,8 @@ export default function PrivacyPolicy() {
         <p>
           Pure Mist (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) values your privacy. This
           Privacy Policy explains how we collect, use, and protect your personal information
-          when you visit our website, register for our webinar, or purchase our products.
+          when you visit our website, sign in with your Google account, or purchase our
+          products.
         </p>
 
         <h2 className="font-serif text-xl text-white mt-8 mb-3">1. Information We Collect</h2>
@@ -20,11 +21,16 @@ export default function PrivacyPolicy() {
           securely through our payment partner, Razorpay. We do not store your card, UPI, or
           bank details on our own servers.
         </p>
+        <p>
+          If you sign in using Google, we receive your name and email address from your
+          Google account to create and manage your account with us. We do not receive or
+          store your Google password.
+        </p>
 
         <h2 className="font-serif text-xl text-white mt-8 mb-3">2. How We Use Your Information</h2>
         <ul className="list-disc pl-5 space-y-1">
           <li>To process and fulfil your orders, including shipping and delivery</li>
-          <li>To send order confirmations, updates, and webinar access details</li>
+          <li>To send order confirmations and updates</li>
           <li>To respond to customer service requests</li>
           <li>To improve our products, website, and customer experience</li>
         </ul>
@@ -33,8 +39,9 @@ export default function PrivacyPolicy() {
         <p>
           We share information only with trusted third parties necessary to fulfil our
           services — including our payment processor (Razorpay), logistics and courier
-          partners (such as Shiprocket), and communication providers used to send order and
-          webinar notifications. We do not sell your personal data to any third party.
+          partners (such as Shiprocket), authentication provider (Google Sign-In), and
+          communication providers used to send order notifications. We do not sell your
+          personal data to any third party.
         </p>
 
         <h2 className="font-serif text-xl text-white mt-8 mb-3">4. Data Security</h2>

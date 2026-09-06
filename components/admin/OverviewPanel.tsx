@@ -11,7 +11,6 @@ import {
   Truck,
   CheckCircle2,
   AlertTriangle,
-  Mail,
 } from 'lucide-react';
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -28,23 +27,20 @@ const orderStatusBadge: Record<string, string> = {
 export default function OverviewPanel({
   onNavigate,
 }: {
-  onNavigate: (tab: 'products' | 'orders' | 'webinar') => void;
+  onNavigate: (tab: 'products' | 'orders') => void;
 }) {
   const supabase = createClient();
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [webinarCount, setWebinarCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   async function loadAll() {
-    const [{ data: productsData }, { data: ordersData }, { count }] = await Promise.all([
+    const [{ data: productsData }, { data: ordersData }] = await Promise.all([
       supabase.from('products').select('*'),
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
-      supabase.from('webinar_registrations').select('*', { count: 'exact', head: true }),
     ]);
     setProducts((productsData as Product[]) || []);
     setOrders((ordersData as Order[]) || []);
-    setWebinarCount(count ?? 0);
     setLoading(false);
   }
 
@@ -59,17 +55,10 @@ export default function OverviewPanel({
       .channel('overview-products')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => loadAll())
       .subscribe();
-    const webinarChannel = supabase
-      .channel('overview-webinar')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'webinar_registrations' }, () =>
-        loadAll()
-      )
-      .subscribe();
 
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(productsChannel);
-      supabase.removeChannel(webinarChannel);
     };
   }, []);
 
@@ -116,7 +105,6 @@ export default function OverviewPanel({
     { label: 'Paid', value: statusCounts.paid, icon: IndianRupee, color: 'text-gold' },
     { label: 'Shipped', value: statusCounts.shipped, icon: Truck, color: 'text-blue-300' },
     { label: 'Delivered', value: statusCounts.delivered, icon: CheckCircle2, color: 'text-emerald' },
-    { label: 'Webinar Signups', value: webinarCount, icon: Mail, color: 'text-gold' },
   ];
 
   return (
@@ -136,12 +124,6 @@ export default function OverviewPanel({
         >
           <ShoppingBag size={16} /> View Orders
         </button>
-        <button
-          onClick={() => onNavigate('webinar')}
-          className="glass rounded-full px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2 text-white hover:bg-white/5"
-        >
-          <Mail size={16} /> Webinar List
-        </button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -157,7 +139,7 @@ export default function OverviewPanel({
         })}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {statusStats.map((s) => {
           const Icon = s.icon;
           return (
