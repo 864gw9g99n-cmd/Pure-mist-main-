@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getRazorpayInstance, calculateChargeAmount } from '@/lib/razorpay';
-import { OrderItem, PaymentPlan } from '@/lib/types';
+import { OrderItem, PaymentPlan, Product } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      items,
-      cartTotal: rawCartTotal,
+      items: clientItems,
       paymentPlan,
       customer,
       shipping,
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please try again.' }, { status: 400 });
     }
 
-    if (!items?.length || !rawCartTotal || !customer?.email || !shipping?.address) {
+    if (!clientItems?.length || !customer?.email || !shipping?.address) {
       return NextResponse.json({ error: 'Missing required checkout details.' }, { status: 400 });
     }
     if (paymentPlan !== 'full' && paymentPlan !== 'advance_30') {
@@ -43,6 +42,75 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServiceClient();
+
+    // --- Re-validate every cart item against the live database. Never
+    // trust product existence, price, or stock as sent from the browser —
+    // the cart is a client-side snapshot and can go stale (e.g. the admin
+    // deleted/deactivated the product, changed its price, or stock ran
+    // out since it was added) or be tampered with directly. ---
+    const productIds = [...new Set(clientItems.map((i) => i.product_id))];
+    const { data: products } = await supabase
+      .from('products')
+      .select('*')
+      .in('id', productIds);
+
+    const productsById = new Map((products || []).map((p: Product) => [p.id, p]));
+    const verifiedItems: OrderItem[] = [];
+
+    for (const item of clientItems) {
+      const product = productsById.get(item.product_id);
+
+      if (!product || !product.is_active) {
+        return NextResponse.json(
+          {
+            error: `"${item.name}" is no longer available. Please remove it from your cart and try again.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      let currentPrice: number;
+      let availableStock: number;
+
+      if (item.variant_label) {
+        const variant = (product.variants || []).find((v) => v.label === item.variant_label);
+        if (!variant) {
+          return NextResponse.json(
+            {
+              error: `"${item.name}" is no longer available in that option. Please update your cart.`,
+            },
+            { status: 409 }
+          );
+        }
+        currentPrice = variant.price;
+        availableStock = variant.stock;
+      } else {
+        currentPrice = product.discounted_price;
+        availableStock = product.stock;
+      }
+
+      if (item.quantity > availableStock) {
+        return NextResponse.json(
+          {
+            error:
+              availableStock > 0
+                ? `Only ${availableStock} left of "${item.name}". Please update the quantity in your cart.`
+                : `"${item.name}" is out of stock. Please remove it from your cart.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      // Rebuild the item using the current DB price — ignore whatever
+      // price the client sent, so a stale or tampered value never
+      // reaches the actual charge.
+      verifiedItems.push({
+        ...item,
+        price: currentPrice,
+      });
+    }
+
+    const rawCartTotal = verifiedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
     // --- Validate + apply coupon server-side (never trust client math) ---
     let cartTotal = rawCartTotal;
@@ -84,7 +152,7 @@ export async function POST(req: NextRequest) {
         shipping_city: shipping.city,
         shipping_state: shipping.state,
         shipping_pincode: shipping.pincode,
-        items,
+        items: verifiedItems,
         cart_total: cartTotal,
         amount_paid: 0,
         balance_due: balanceDue,
