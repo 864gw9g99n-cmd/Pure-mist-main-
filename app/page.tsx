@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import { createPublicClient } from '@/lib/supabase/server';
 import Hero from '@/components/Hero';
 import ProductGrid from '@/components/ProductGrid';
@@ -25,6 +26,12 @@ export default async function HomePage() {
 
   return (
     <>
+      <Script 
+        src="https://cse.google.com/cse.js?cx=a39005acc0b074d7f" 
+        strategy="afterInteractive" 
+      />
+      <div className="gcse-search"></div>
+
       <Hero />
 
       <ProductGrid products={products} />
@@ -35,8 +42,8 @@ export default async function HomePage() {
           Crafted for the Discerning
         </h2>
         <p className="text-neutral-400 leading-relaxed text-sm sm:text-base">
-          Pure Mist was founded on a single belief — that fragrance is memory, made
-          wearable. Every bottle in our collection is composed with rare absolutes
+          Pure Mist was founded on a single belief — that fragrance is memory, made 
+          wearable. Every bottle in our collection is composed with rare absolutes 
           and precious oils, blended in small batches to preserve character and depth.
         </p>
       </section>
